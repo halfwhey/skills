@@ -1,0 +1,11 @@
+{
+  "name": "tmux",
+  "description": "Control tmux sessions, windows, and panes via the tmux CLI.",
+  "version": "1.1.0",
+  "author": {
+    "name": "halfwhey"
+  },
+  "repository": "https://github.com/halfwhey/tmux-skill",
+  "license": "MIT",
+  "keywords": ["tmux", "terminal", "tui", "pane-automation"]
+}

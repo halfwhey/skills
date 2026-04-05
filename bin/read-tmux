@@ -87,6 +87,7 @@ if [[ "$TUI" == true ]]; then
 
   if [[ "$TUI_FULL" == true ]] || [[ ! -f "$TUI_PREV" ]]; then
     # First TUI read or --full: decorate, show full screen
+    tmux set-option -p -t "$PANE_ID" pane-border-status top 2>/dev/null || true
     tmux set-option -p -t "$PANE_ID" pane-border-format "#[bg=yellow,fg=black,bold] ● Operated by Claude #[default]" 2>/dev/null || true
     printf '%s\n' "$OUTPUT" > "$TUI_PREV"
     print_capped "$OUTPUT"
@@ -119,6 +120,7 @@ fi
 if [[ ! -f "$MARKER" ]]; then
   # First call — decorate pane, capture full buffer, save position
   mkdir -p "$DIR"
+  tmux set-option -p -t "$PANE_ID" pane-border-status top 2>/dev/null || true
   tmux set-option -p -t "$PANE_ID" pane-border-format "#[bg=yellow,fg=black,bold] ● Operated by Claude #[default]" 2>/dev/null || true
   OUTPUT=$(tmux capture-pane -t "$PANE_ID" -p -S - -E "$CURRENT_CURSOR")
   echo "$CURRENT_TOTAL" > "$MARKER"
