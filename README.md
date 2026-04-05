@@ -1,5 +1,3 @@
-# tmux skill for Claude Code
-
 ![explore-top](https://github.com/halfwhey/tmux-skill/releases/download/v1.1.0/explore-top.gif)
 *Claude teaches you how to use top*
 
