@@ -19,9 +19,12 @@ The result: Claude spends tokens on what actually changed, not on re-reading sta
 
 ## Installation
 
-**As a plugin** (recommended):
 ```bash
-claude plugin add github:halfwhey/tmux-skill
+# Add the marketplace
+claude plugin marketplace add halfwhey/tmux-skill
+
+# Install the plugin
+claude plugin install tmux
 ```
 
 **Or test locally:**
