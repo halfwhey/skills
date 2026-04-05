@@ -14,6 +14,20 @@
 
 set -euo pipefail
 
+# Garbage-collect state dirs for dead panes (runs in background, best-effort)
+(
+  STATE_ROOT="/tmp/tmux-skill"
+  if [[ -d "$STATE_ROOT" ]]; then
+    for d in "$STATE_ROOT"/%*; do
+      [[ -d "$d" ]] || continue
+      pane="$(basename "$d")"
+      if ! tmux display-message -t "$pane" -p '#{pane_id}' &>/dev/null; then
+        rm -rf "$d"
+      fi
+    done
+  fi
+) &>/dev/null &
+
 TUI=false
 TUI_FULL=false
 while [[ "${1:-}" == --* ]]; do
@@ -52,9 +66,11 @@ print_capped() {
     printf '%s\n' "$content"
   else
     local skipped=$(( bytes - limit ))
+    local full_path="$DIR/full_output"
+    printf '%s\n' "$content" > "$full_path"
     printf '%s\n' "${content:0:$HEAD}"
     echo ""
-    echo "--- [... $skipped bytes omitted ...] ---"
+    echo "--- [... $skipped bytes omitted — full output saved to $full_path ...] ---"
     echo ""
     printf '%s\n' "${content: -$TAIL}"
   fi
