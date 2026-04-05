@@ -42,8 +42,6 @@ claude --plugin-dir /path/to/tmux-skill
 ├── bin/
 │   ├── read-tmux         # Smart pane output reader (delta + TUI modes)
 │   └── send-tmux         # Pane key sender with auto-decoration
-└── references/
-    └── recording.md      # How to record demos with asciinema + agg
 ```
 
 ## More demos
