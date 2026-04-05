@@ -18,7 +18,8 @@ if ! tmux display-message -t "$PANE_ID" -p '#{pane_id}' &>/dev/null; then
   exit 1
 fi
 
-# Decorate
+# Decorate (enable border status in case user hasn't set it globally)
+tmux set-option -p -t "$PANE_ID" pane-border-status top 2>/dev/null || true
 tmux set-option -p -t "$PANE_ID" pane-border-format "#[bg=yellow,fg=black,bold] ● Operated by Claude #[default]" 2>/dev/null || true
 
 # Send keys

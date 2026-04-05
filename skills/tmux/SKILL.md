@@ -31,17 +31,31 @@ A pane's `pane_id` changes when it is destroyed and recreated — even at the sa
 
 ---
 
-## Selecting an Existing Pane (User-Directed)
+## Resolving Panes by Description
 
-When the user asks Claude to interact with an existing pane:
+The user may refer to panes informally — "the other pane", "the pane running vim", "the shell on the right". Resolve these yourself before falling back to asking:
+
+```bash
+# List all panes in the current window (excluding yourself)
+tmux list-panes -F '#{pane_id} #{pane_current_command}' | grep -v "^$TMUX_PANE "
+
+# "The other pane" / "the only other pane" — works when there are exactly 2 panes
+PANE_ID=$(tmux list-panes -F '#{pane_id}' | grep -v "^$TMUX_PANE$")
+
+# "The pane running vim"
+PANE_ID=$(tmux list-panes -F '#{pane_id} #{pane_current_command}' | grep vim | awk '{print $1}')
+```
+
+Use `$TMUX_PANE` (your own pane ID, set automatically by tmux) to exclude yourself from the list.
+
+If the description is ambiguous or matches multiple panes, ask the user:
 
 1. Run `tmux display-panes -d 5000` — numbered overlays appear for 5 seconds
-2. User says the number (e.g. "1")
-3. Resolve to `pane_id` via `:.N` — **no listing needed**:
+2. Ask the user which number
+3. Resolve with `:.N`:
    ```bash
    PANE_ID=$(tmux display-message -t :.1 -p '#{pane_id}')
    ```
-4. Use `$PANE_ID` for everything from here on
 
 ---
 
@@ -91,6 +105,7 @@ Both `bin/read-tmux` and `bin/send-tmux` auto-decorate panes on first interactio
 
 To release decoration when done with a pane:
 ```bash
+tmux set-option -p -t %42 -u pane-border-status 2>/dev/null || true
 tmux set-option -p -t %42 -u pane-border-format 2>/dev/null || true
 ```
 
