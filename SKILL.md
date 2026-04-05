@@ -50,22 +50,37 @@ When the user asks Claude to interact with an existing pane:
 Use the `bin/read-tmux` script — do **not** use raw `capture-pane` for reading command output.
 
 ```bash
-bin/read-tmux %42          # delta mode (default)
-bin/read-tmux --full %42   # full visible screen (for TUI apps like vim, htop)
+bin/read-tmux %42          # delta mode (default) — for shell output
+bin/read-tmux --tui %42    # TUI mode — diff of changed screen regions
+bin/read-tmux --full %42   # TUI mode — always full screen (no diff)
 ```
 
-- **First call** for a `pane_id`: captures full scrollback (500 lines), saves to `/tmp/tmux-skill/%42/1`, prints ≤4KB
-- **Subsequent calls**: captures new snapshot, diffs against previous, prints delta ≤4KB
-- **No changes**: prints `(no changes since last read)`
-- **Truncated**: appends a path reference to the full file on disk
+### Delta mode (default)
+
+- **First call**: captures full scrollback, saves position marker, prints ≤4KB
+- **Subsequent calls**: captures only new lines since last read
+- **No changes**: prints `(no new output)`
+
+### TUI mode (`--tui`)
+
+Use for any full-screen application (vim, htop, lazygit, top, etc.).
+
+- **First call**: captures full visible screen, saves snapshot
+- **Subsequent calls**: diffs against previous capture
+  - If ≤50% of lines changed → shows unified diff (only changed regions)
+  - If >50% of lines changed → shows full screen (heavy redraw fallback)
+- **No changes**: prints `(no changes on screen)`
+
+### Output capping
+
+All output is capped at first 2000 + last 2000 bytes; middle is truncated if exceeded.
+
+### State directory
 
 State is stored in `/tmp/tmux-skill/<pane_id>/`:
 ```
-1            ← first full capture
-2            ← second capture
-delta_1_2    ← unified diff 1→2
-3
-delta_2_3
+position     ← line counter for delta mode
+tui_prev     ← last TUI capture for diffing
 ```
 
 ---

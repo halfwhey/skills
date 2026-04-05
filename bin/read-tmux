@@ -8,19 +8,25 @@
 # Position = history_size + cursor_y — tracks total lines written, accurate
 # even when output hasn't scrolled into the scrollback buffer yet.
 #
+# --tui mode: captures full visible screen (for TUI apps like vim, htop).
+#
 # Output is capped: first 2000 bytes + last 2000 bytes, middle truncated.
 
 set -euo pipefail
 
-FULL=false
-if [[ "${1:-}" == "--full" ]]; then
-  FULL=true
-  shift
-fi
+TUI=false
+TUI_FULL=false
+while [[ "${1:-}" == --* ]]; do
+  case "$1" in
+    --tui)  TUI=true; shift ;;
+    --full) TUI=true; TUI_FULL=true; shift ;;
+    *) break ;;
+  esac
+done
 
 PANE_ID="${1:-}"
 if [[ -z "$PANE_ID" ]]; then
-  echo "Usage: read-tmux [--full] <pane_id>  (e.g. read-tmux %42)" >&2
+  echo "Usage: read-tmux [--tui|--full] <pane_id>  (e.g. read-tmux %42)" >&2
   exit 1
 fi
 
@@ -58,9 +64,39 @@ CURRENT_HISTORY=$(tmux display-message -t "$PANE_ID" -p '#{history_size}')
 CURRENT_CURSOR=$(tmux display-message -t "$PANE_ID" -p '#{cursor_y}')
 CURRENT_TOTAL=$(( CURRENT_HISTORY + CURRENT_CURSOR ))
 
-if [[ "$FULL" == true ]]; then
+if [[ "$TUI" == true ]]; then
+  mkdir -p "$DIR"
+  TUI_PREV="$DIR/tui_prev"
   OUTPUT=$(tmux capture-pane -t "$PANE_ID" -p -E "$CURRENT_CURSOR")
-  print_capped "$OUTPUT"
+
+  if [[ "$TUI_FULL" == true ]] || [[ ! -f "$TUI_PREV" ]]; then
+    # First TUI read or --full: decorate, show full screen
+    tmux set-option -p -t "$PANE_ID" pane-border-format "#[bg=yellow,fg=black,bold] ● Operated by Claude #[default]" 2>/dev/null || true
+    printf '%s\n' "$OUTPUT" > "$TUI_PREV"
+    print_capped "$OUTPUT"
+  else
+    # Diff against previous capture
+    PREV=$(cat "$TUI_PREV")
+    printf '%s\n' "$OUTPUT" > "$TUI_PREV"
+
+    if [[ "$OUTPUT" == "$PREV" ]]; then
+      echo "(no changes on screen)"
+    else
+      TOTAL_LINES=$(printf '%s\n' "$OUTPUT" | wc -l)
+      CHANGED_LINES=$(diff --old-line-format='x' --new-line-format='x' --unchanged-line-format='' \
+        <(printf '%s\n' "$PREV") <(printf '%s\n' "$OUTPUT") | wc -c || true)
+      THRESHOLD=$(( TOTAL_LINES / 2 ))
+
+      if [[ $CHANGED_LINES -gt $THRESHOLD ]]; then
+        # Heavy redraw — show full screen
+        print_capped "$OUTPUT"
+      else
+        # Show unified diff
+        DIFF=$(diff -U1 <(printf '%s\n' "$PREV") <(printf '%s\n' "$OUTPUT") | tail -n +3 || true)
+        print_capped "$DIFF"
+      fi
+    fi
+  fi
   exit 0
 fi
 
